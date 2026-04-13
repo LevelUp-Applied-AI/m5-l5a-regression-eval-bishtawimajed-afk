@@ -37,32 +37,34 @@ def build_logistic_pipeline(X_train, X_test, y_train, y_test):
     }
     return pipeline, metrics
 
-# Task 4 & 5: Ridge and Lasso Comparison
-def compare_regression(X_train, X_test, y_train, y_test):
-    ridge_pipe = Pipeline([
+# Task 4: Build Ridge Pipeline
+def build_ridge_pipeline(X_train, X_test, y_train, y_test):
+    pipeline = Pipeline([
         ('scaler', StandardScaler()),
         ('model', Ridge(alpha=1.0))
     ])
-    ridge_pipe.fit(X_train, y_train)
-    
-    lasso_pipe = Pipeline([
+    pipeline.fit(X_train, y_train)
+    return pipeline
+
+# Task 5: Build Lasso Pipeline
+def build_lasso_pipeline(X_train, X_test, y_train, y_test):
+    pipeline = Pipeline([
         ('scaler', StandardScaler()),
         ('model', Lasso(alpha=0.1))
     ])
-    lasso_pipe.fit(X_train, y_train)
-    
+    pipeline.fit(X_train, y_train)
+    return pipeline
+
+# دالة إضافية عشان تطبع الجدول اللي طلبناه قبل (اختياري بس مفيد)
+def compare_regression(ridge_pipe, lasso_pipe, features):
     ridge_coefs = ridge_pipe.named_steps['model'].coef_
     lasso_coefs = lasso_pipe.named_steps['model'].coef_
-    features = X_train.columns
     
     print("\n--- Task 5: Feature Coefficients Comparison ---")
     print(f"{'Feature':<30} | {'Ridge':<10} | {'Lasso':<10}")
     print("-" * 55)
     for feat, r, l in zip(features, ridge_coefs, lasso_coefs):
         print(f"{feat:<30} | {r:>10.4f} | {l:>10.4f}")
-    
-    return ridge_pipe, lasso_pipe
-
 # Task 6: Cross-Validation
 def perform_cross_validation(pipeline, X, y):
     cv_splitter = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
@@ -187,9 +189,15 @@ if __name__ == "__main__":
     log_pipe, log_metrics =build_logistic_pipeline(X_train_c, X_test_c, y_train_c, y_test_c)
     
     # Regression Tasks
+
     X_train_r, X_test_r, y_train_r, y_test_r = split_data(df, 'monthly_charges', is_regression=True)
-    ridge_p, lasso_p = compare_regression(X_train_r, X_test_r, y_train_r, y_test_r)
     
+    # استدعاء الدوال الجديدة المنفصلة
+    ridge_p = build_ridge_pipeline(X_train_r, X_test_r, y_train_r, y_test_r)
+    lasso_p = build_lasso_pipeline(X_train_r, X_test_r, y_train_r, y_test_r)
+    
+    # إذا حابة تطبعي المقارنة زي قبل (اختياري)
+    # compare_regression(ridge_p, lasso_p, X_train_r.columns)
     # Task 6: CV
     perform_cross_validation(log_pipe, X_train_c, y_train_c)
 

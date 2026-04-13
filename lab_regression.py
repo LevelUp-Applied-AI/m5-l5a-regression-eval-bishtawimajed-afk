@@ -9,27 +9,21 @@ from sklearn.linear_model import LogisticRegression, Ridge, Lasso
 from sklearn.metrics import (accuracy_score, precision_score, recall_score, f1_score, 
                              classification_report, mean_absolute_error, r2_score)
 
-# --- Task 1: Data Loading (Improved for Autograder) ---
+# --- Task 1: Data Loading ---
 def load_data(filepath="data/telecom_churn.csv"):
-    # قائمة بالمسارات المحتملة لضمان عمل الكود في أي بيئة
     possible_paths = [
         filepath,
         os.path.join("starter", filepath),
-        "../data/telecom_churn.csv",
-        "/home/runner/work/m5-l5a-regression-eval-bishtawimajed-afk/m5-l5a-regression-eval-bishtawimajed-afk/data/telecom_churn.csv"
+        "../data/telecom_churn.csv"
     ]
-    
     for path in possible_paths:
         if os.path.exists(path):
             try:
                 df = pd.read_csv(path)
                 print(f"Successfully loaded data from: {path}")
-                print(f"Rows: {len(df)}, Columns: {df.shape[1]}")
                 return df
             except Exception as e:
-                print(f"Found file at {path} but error reading it: {e}")
-                
-    print("Error: Could not find the dataset in any of the expected locations.")
+                print(f"Error reading file at {path}: {e}")
     return None
 
 # --- Task 2: Data Splitting ---
@@ -37,14 +31,12 @@ def split_data(df, target_col, test_size=0.2, random_state=42, is_regression=Fal
     X = df.drop(columns=[target_col, 'customer_id'], errors='ignore')
     X = pd.get_dummies(X, drop_first=True)
     y = df[target_col]
-
+    
     if not is_regression and (y.dtype == "object" or y.nunique() <= 10):
         stratify = y
-        print(f"Using stratification for target: {target_col}")
     else:
         stratify = None
-        print(f"Using random split (no stratification) for continuous target: {target_col}")
-
+        
     return train_test_split(X, y, test_size=test_size, random_state=random_state, stratify=stratify)
 
 # --- Task 3: Classification ---
@@ -67,36 +59,50 @@ def evaluate_classifier(pipeline, X_test, y_test):
     }
 
 # --- Task 4 & 5: Regression ---
-def build_ridge_pipeline(X_train, X_test, y_train, y_test):
-    pipeline = Pipeline([
+def build_ridge_pipeline():
+    return Pipeline([
         ('scaler', StandardScaler()),
-        ('model', Ridge(alpha=1.0, random_state=42))
+        ('ridge', Ridge(random_state=42))
     ])
-    pipeline.fit(X_train, y_train)
-    return pipeline
 
-def build_lasso_pipeline(X_train, X_test, y_train, y_test):
-    pipeline = Pipeline([
+def build_lasso_pipeline():
+    return Pipeline([
         ('scaler', StandardScaler()),
-        ('model', Lasso(alpha=0.1, random_state=42))
+        ('lasso', Lasso(random_state=42))
     ])
-    pipeline.fit(X_train, y_train)
-    return pipeline
 
-def evaluate_regressor(pipeline, X_test, y_test):
+def evaluate_regressor(pipeline, X_train, X_test, y_train, y_test):
+    pipeline.fit(X_train, y_train)
     y_pred = pipeline.predict(X_test)
     return {
         'mae': mean_absolute_error(y_test, y_pred),
         'r2': r2_score(y_test, y_pred)
     }
 
-# --- Task 6: Cross-Validation ---
-def perform_cross_validation(pipeline, X, y):
-    skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-    scores = cross_val_score(pipeline, X, y, cv=skf, scoring='accuracy')
+# --- Task 6: Cross-Validation (التغيير المهم هنا) ---
+def run_cross_validation(pipeline, X_train, y_train, cv=5):
+    skf = StratifiedKFold(n_splits=cv, shuffle=True, random_state=42)
+    scores = cross_val_score(pipeline, X_train, y_train, cv=skf, scoring='accuracy')
     return scores
 
-# --- Tier 1: Threshold Tuning ---
+# --- Main Execution ---
+if __name__ == "__main__":
+    df = load_data()
+    if df is not None:
+        # Classification
+        X_train_c, X_test_c, y_train_c, y_test_c = split_data(df, 'churned')
+        log_pipe, log_metrics = build_logistic_pipeline(X_train_c, X_test_c, y_train_c, y_test_c)
+        
+        # Regression
+        X_train_r, X_test_r, y_train_r, y_test_r = split_data(df, 'monthly_charges', is_regression=True)
+        ridge_pipe = build_ridge_pipeline()
+        reg_metrics = evaluate_regressor(ridge_pipe, X_train_r, X_test_r, y_train_r, y_test_r)
+        
+        # Cross Validation
+        cv_scores = run_cross_validation(log_pipe, X_train_c, y_train_c)
+        print(f"CV Accuracy: {cv_scores.mean():.4f}")
+
+        # --- Tier 1: Threshold Tuning ---
 def run_threshold_tuning(pipeline, X_test, y_test):
     y_probs = pipeline.predict_proba(X_test)[:, 1]
     thresholds = [0.3, 0.4, 0.5, 0.6, 0.7]
@@ -155,33 +161,7 @@ def run_scratch_comparison(X_train, X_test, y_train, y_test):
     y_pred = model.predict(X_test_s)
     print(f"\n--- Tier 3: Scratch Model Accuracy: {accuracy_score(y_test, y_pred):.4f}")
 
-# --- Main Execution ---
-if __name__ == "__main__":
-    df = load_data()
-    if df is not None:
-        # 1. Classification
-        print("\n" + "="*30 + "\nCLASSIFICATION\n" + "="*30)
-        X_train_c, X_test_c, y_train_c, y_test_c = split_data(df, 'churned')
-        log_pipe, log_metrics = build_logistic_pipeline(X_train_c, X_test_c, y_train_c, y_test_c)
-        for k, v in log_metrics.items(): print(f"{k.capitalize():<10}: {v:.4f}")
-        
-        cv_scores = perform_cross_validation(log_pipe, X_train_c, y_train_c)
-        print(f"CV Accuracy: {cv_scores.mean():.4f}")
-
-        # 2. Regression
-        print("\n" + "="*30 + "\nREGRESSION\n" + "="*30)
-        X_train_r, X_test_r, y_train_r, y_test_r = split_data(df, 'monthly_charges', is_regression=True)
-        ridge_p = build_ridge_pipeline(X_train_r, X_test_r, y_train_r, y_test_r)
-        lasso_p = build_lasso_pipeline(X_train_r, X_test_r, y_train_r, y_test_r)
-        reg_metrics = evaluate_regressor(ridge_p, X_test_r, y_test_r)
-        print(f"Ridge MAE: {reg_metrics['mae']:.4f} | R2: {reg_metrics['r2']:.4f}")
-
-        # 3. Challenges
-        run_threshold_tuning(log_pipe, X_test_c, y_test_c)
-        run_model_sweep(X_train_c, y_train_c)
-        run_scratch_comparison(X_train_c, X_test_c, y_train_c, y_test_c)
-
-"""
+    """
 SUMMARY OF THE ISSUE AND FIX:
 I encountered errors during the autograder tests mainly due to path mismatches. 
 The tests expected the dataset and module to exist under the starter/ directory, 

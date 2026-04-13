@@ -10,7 +10,7 @@ from sklearn.metrics import (
 )
 
 # Task 1 & 2: Load and Split
-def load_and_explore(filepath):
+def load_data(filepath):
     df = pd.read_csv(filepath)
     return df
 
@@ -22,7 +22,7 @@ def split_data(df, target_column, is_regression=False):
     return train_test_split(X, y, test_size=0.2, random_state=42, stratify=strat)
 
 # Task 3: Logistic Regression
-def run_logistic_pipeline(X_train, X_test, y_train, y_test):
+def build_logistic_pipeline(X_train, X_test, y_train, y_test):
     pipeline = Pipeline([
         ('scaler', StandardScaler()),
         ('model', LogisticRegression(random_state=42, max_iter=1000, class_weight="balanced"))
@@ -38,7 +38,7 @@ def run_logistic_pipeline(X_train, X_test, y_train, y_test):
     return pipeline, metrics
 
 # Task 4 & 5: Ridge and Lasso Comparison
-def run_regression_comparison(X_train, X_test, y_train, y_test):
+def compare_regression(X_train, X_test, y_train, y_test):
     ridge_pipe = Pipeline([
         ('scaler', StandardScaler()),
         ('model', Ridge(alpha=1.0))
@@ -64,7 +64,7 @@ def run_regression_comparison(X_train, X_test, y_train, y_test):
     return ridge_pipe, lasso_pipe
 
 # Task 6: Cross-Validation
-def run_cross_validation(pipeline, X, y):
+def perform_cross_validation(pipeline, X, y):
     cv_splitter = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
     scores = cross_val_score(pipeline, X, y, cv=cv_splitter, scoring="accuracy")
     
@@ -180,18 +180,18 @@ def run_scratch_comparison(X_train, X_test, y_train, y_test):
 
 # Execution
 if __name__ == "__main__":
-    df = load_and_explore('data/telecom_churn.csv')
+    df = load_data('data/telecom_churn.csv')
     
     # Classification Tasks
     X_train_c, X_test_c, y_train_c, y_test_c = split_data(df, 'churned')
-    log_pipe, log_metrics = run_logistic_pipeline(X_train_c, X_test_c, y_train_c, y_test_c)
+    log_pipe, log_metrics =build_logistic_pipeline(X_train_c, X_test_c, y_train_c, y_test_c)
     
     # Regression Tasks
     X_train_r, X_test_r, y_train_r, y_test_r = split_data(df, 'monthly_charges', is_regression=True)
-    ridge_p, lasso_p = run_regression_comparison(X_train_r, X_test_r, y_train_r, y_test_r)
+    ridge_p, lasso_p = compare_regression(X_train_r, X_test_r, y_train_r, y_test_r)
     
     # Task 6: CV
-    run_cross_validation(log_pipe, X_train_c, y_train_c)
+    perform_cross_validation(log_pipe, X_train_c, y_train_c)
 
     # Challenge Execution
     X_test_c_enc = pd.get_dummies(X_test_c, drop_first=True).reindex(columns=X_train_c.columns, fill_value=0)

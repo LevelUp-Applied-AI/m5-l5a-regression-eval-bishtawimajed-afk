@@ -180,6 +180,16 @@ def run_scratch_comparison(X_train, X_test, y_train, y_test):
     print("\n--- Tier 3: Manual Implementation Accuracy ---")
     print(f"Scratch Model Accuracy: {accuracy_score(y_test, y_pred):.4f}")
 
+    def evaluate_classifier(pipeline, X_test, y_test):
+    y_pred = pipeline.predict(X_test)
+    metrics = {
+        "accuracy": accuracy_score(y_test, y_pred),
+        "precision": precision_score(y_test, y_pred),
+        "recall": recall_score(y_test, y_pred),
+        "f1": f1_score(y_test, y_pred)
+    }
+    return metrics
+
 # Execution
 if __name__ == "__main__":
     df = load_data('data/telecom_churn.csv')

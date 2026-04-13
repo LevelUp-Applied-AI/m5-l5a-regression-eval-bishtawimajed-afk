@@ -17,7 +17,7 @@ from sklearn.metrics import (classification_report,
                              mean_absolute_error, r2_score)
 
 
-def load_data(filepath="data/telecom_churn.csv"):
+def load_data(filepath="starter\data\telecom_churn.csv"):
     """Load the telecom churn dataset."""
     try:
         df = pd.read_csv(filepath)

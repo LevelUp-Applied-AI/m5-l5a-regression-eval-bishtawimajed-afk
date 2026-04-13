@@ -155,6 +155,7 @@ if __name__ == "__main__":
     print(f"Ridge Regression Results:")
     print(f"   MAE : {reg_metrics['mae']:.4f}")
     print(f"   R²  : {reg_metrics['r2']:.4f}")
+
     """
 SUMMARY OF THE ISSUE AND FIX:
 I encountered errors during the autograder tests mainly due to path mismatches. 
